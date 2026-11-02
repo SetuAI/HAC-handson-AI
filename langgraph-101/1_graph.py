@@ -110,7 +110,7 @@ def aggregate(state: PortfolioState):
     severities = [f["severity"] for f in state["findings"]]
     score = sum(severities) / len(severities) 
     return {
-        "risk score" : round(score,2),
+        "risk_score" : round(score,2),
         "audit_log": [f"Aggregated {len(severities)} findings -> {score:.2f}"],
     }
     
@@ -130,9 +130,73 @@ def auto_approve(state: PortfolioState):
 # this is applied after the aggregate node, to decide which path to take next
 
 def risk_router(state: PortfolioState):
+    
     "route to escalate or auto_approve based on risk score"
     # if the risk score is above the threshold, go to escalate node, else auto approve
-    if state["risk_score"] > state["escalation_threshold"]:
-        return "escalate"
-    else:
-        return "auto_approve"
+    return "escalate" if state["risk_score"] > state["escalation_threshold"] else "auto_approve"
+    
+# build the graph
+# builder graph needs state schema so it knows which keys exist
+
+builder = StateGraph(PortfolioState)
+
+# register all the nodes in our graph , use .add_node
+builder.add_node("load_portfolio", load_portfolio)
+builder.add_node("concentration_check", concentration_check)
+builder.add_node("liquidity_check", liquidity_check)
+builder.add_node("credit_check", credit_check)
+builder.add_node("aggregate", aggregate)
+builder.add_node("escalate", escalate)
+builder.add_node("auto_approve", auto_approve)
+
+# adding edges
+builder.add_edge(START, "load_portfolio")
+# FAN OUT : three edges leave from one node : 
+builder.add_edge("load_portfolio", "concentration_check")
+builder.add_edge("load_portfolio", "liquidity_check")
+builder.add_edge("load_portfolio", "credit_check")
+# FAN IN : three edges go into one node :
+builder.add_edge("concentration_check", "aggregate")
+builder.add_edge("liquidity_check", "aggregate")
+builder.add_edge("credit_check", "aggregate")
+
+# conditional edge
+builder.add_conditional_edges(
+    "aggregate",
+    risk_router,
+    {"escalate" : "escalate", "auto_approve" : "auto_approve"} 
+)
+
+builder.add_edge("escalate", END)
+builder.add_edge("auto_approve", END)
+
+# compile into a runnable graph
+graph = builder.compile()
+
+# run the portfolio through the graph
+
+# RUN 1: strick desk , escalate if the risk score is above 5.0
+strict_result = graph.invoke(
+    {
+        "portfolio_id" : "PF-2291",
+        "escalation_threshold" : 5.0
+    }
+)
+
+print("\n--- STRICT desk (threshold 5.0) ---")
+print("Findings :", strict_result["findings"])
+print("Risk     :", strict_result["risk_score"])
+print("Decision :", strict_result["decision"])
+print("Audit    :", strict_result["audit_log"])
+
+# Run 2: TOLERANT desk. Escalate if the risk score is above 8.0
+tolerant_result = graph.invoke({
+    "portfolio_id": "PF-2291",
+    "escalation_threshold": 8.0,
+})
+
+print("\n--- TOLERANT desk (threshold 8.0) ---")
+print("Findings :", tolerant_result["findings"])
+print("Risk     :", tolerant_result["risk_score"])
+print("Decision :", tolerant_result["decision"])
+print("Audit    :", tolerant_result["audit_log"])
