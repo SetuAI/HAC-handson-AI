@@ -1,0 +1,32 @@
+# =============================================================================
+# requirements.txt — Financial Multi-Agent System
+# =============================================================================
+
+# ── LangGraph & LangChain Core ─────────────────────────────────────────────
+langgraph
+langchain
+langchain-openai
+langchain-core
+langchain-community
+
+# ── OpenAI ─────────────────────────────────────────────────────────────────
+openai
+
+# ── FastAPI + Server ───────────────────────────────────────────────────────
+fastapi
+uvicorn
+
+# ── Streamlit UI ───────────────────────────────────────────────────────────
+streamlit
+
+# ── Financial Data ─────────────────────────────────────────────────────────
+yfinance
+pandas
+
+# ── Pydantic + Settings ────────────────────────────────────────────────────
+pydantic
+pydantic-settings
+
+# ── Utilities ──────────────────────────────────────────────────────────────
+python-dotenv
+requests
