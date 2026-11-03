@@ -35,7 +35,9 @@ def fetch_stock_price(ticker: str) -> dict[str, Any]:
 
         # Download 30 days of daily bars for historical analysis
         hist = stock.history(period="1mo", interval="1d")
-        closing_prices = hist["Close"].tolist() if not hist.empty else []
+        # dropna(): Yahoo returns a NaN close for today's bar before the market opens,
+        # and NaN is not valid JSON
+        closing_prices = hist["Close"].dropna().tolist() if not hist.empty else []
 
         result = {
             "ticker"            : ticker.upper(),
@@ -145,7 +147,7 @@ def calculate_risk_metrics(ticker: str) -> dict[str, Any]:
 
         # Daily return = (today − yesterday) / yesterday
         # pct_change() does this for every row, dropna() removes the first NaN
-        daily_returns = hist["Close"].pct_change().dropna()
+        daily_returns = hist["Close"].pct_change(fill_method=None).dropna()
         returns_list  = daily_returns.tolist()
         n             = len(returns_list)
 
@@ -202,7 +204,7 @@ def calculate_risk_metrics(ticker: str) -> dict[str, Any]:
 
         # --- Max Drawdown ---
         # Largest peak-to-trough loss over the period
-        prices       = hist["Close"].tolist()
+        prices       = hist["Close"].dropna().tolist()
         peak         = prices[0]
         max_drawdown = 0.0
         for price in prices:
