@@ -1,0 +1,10 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+
+# Source PDFs in data/raw/ are tracked with Git LFS; vector store is rebuilt by run_ingestion.py
+data/chroma/
