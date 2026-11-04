@@ -80,6 +80,31 @@ python run_query.py "How did revenue change?" Eternal
 
 ---
 
+## The pipeline UI
+
+A browser view of the whole run, stage by stage, as it happens.
+
+```bash
+uvicorn api.main:app --reload
+# open http://localhost:8000
+```
+
+What you see, in order:
+
+- **Stepper** -- every graph node lights up live (running, done, blocked, paused, skipped). Click one to jump to it.
+- **Input guardrail** -- allowed or blocked, and which check decided.
+- **Vector search** -- the top 20 chunks per financial year, FY2025 (blue) and FY2026 (amber) side by side.
+  After reranking, each shows KEPT or dropped. Sort by rerank score, filter to kept or discarded, highlight the question's terms.
+- **Rerank** -- the top 5 per year with their rerank scores and how far each one moved (`was #14  ▲ 11`).
+  Hover a chunk to find it among the 20.
+- **Draft and grounding check** -- the score against the threshold, with unsupported figures highlighted in the draft.
+- **Human review** -- when the graph pauses, edit the draft and then approve or reject it. That resumes the graph from its checkpoint.
+- **Final answer**.
+
+Click a chunk to expand it, or use *open ⤢* for the full text.
+
+---
+
 ## Running the pieces separately
 
 Every step runs on its own, which is how the project is meant to be taught —
@@ -121,6 +146,12 @@ retrieval/
 guardrails/
   topic.py                input:  is this our subject?
   factual.py              output: is this supported by the sources?
+
+api/
+  main.py                 FastAPI: streams each node to the UI
+
+ui/
+  index.html, app.js, styles.css   the pipeline UI
 
 graph/
   state.py                what flows through

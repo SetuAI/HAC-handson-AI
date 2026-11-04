@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Annual Report RAG</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◆</span>
+      <div>
+        <h1>Annual Report RAG</h1>
+        <p class="sub">Guardrails · Reranking · Human-in-the-loop, step by step</p>
+      </div>
+    </div>
+    <button id="themeToggle" class="ghost" title="Toggle theme">◐</button>
+  </header>
+
+  <main>
+    <!-- ================= QUERY ================= -->
+    <section class="card query-card">
+      <form id="queryForm">
+        <div class="row">
+          <label class="field company">
+            <span>Company</span>
+            <select id="company"></select>
+          </label>
+          <label class="field grow">
+            <span>Question</span>
+            <input id="question" type="text" autocomplete="off"
+                   placeholder="Ask a year-over-year question about the annual reports…">
+          </label>
+          <button id="runBtn" type="submit" class="primary">Run pipeline ▸</button>
+        </div>
+        <div id="samples" class="chips"></div>
+      </form>
+    </section>
+
+    <!-- ================= PIPELINE STEPPER ================= -->
+    <nav id="stepper" class="stepper" aria-label="Pipeline stages">
+      <ol id="steps"></ol>
+    </nav>
+
+    <div id="errorBox" class="card error hidden"></div>
+
+    <div id="stages" class="hidden">
+      <!-- 1. Query echo -->
+      <section class="stage" id="panel-query">
+        <div class="stage-head"><span class="num">0</span><h2>Query</h2></div>
+        <div class="card">
+          <div class="query-echo">
+            <span class="pill company-pill" id="echoCompany"></span>
+            <q id="echoQuestion"></q>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Input guardrail -->
+      <section class="stage" id="panel-input_guardrail">
+        <div class="stage-head"><span class="num">1</span><h2>Input guardrail</h2>
+          <span class="hint">Is this question about our subject? Cheapest rejection runs first.</span>
+          <span class="timing" data-for="input_guardrail"></span></div>
+        <div class="card body"><div class="placeholder">Waiting…</div></div>
+      </section>
+
+      <!-- 3. Retrieval -->
+      <section class="stage" id="panel-retrieve">
+        <div class="stage-head"><span class="num">2</span><h2>Vector search — top <span class="k-vec">20</span> per FY</h2>
+          <span class="hint">Filtered by company + fiscal year, ranked by embedding similarity.</span>
+          <span class="timing" data-for="retrieve"></span></div>
+        <div class="toolbar hidden" id="candToolbar">
+          <div class="seg" data-control="sort">
+            <button data-value="rank" class="on">Sort: similarity</button>
+            <button data-value="rerank" disabled>Sort: rerank score</button>
+          </div>
+          <div class="seg" data-control="filter">
+            <button data-value="all" class="on">All</button>
+            <button data-value="kept" disabled>Kept</button>
+            <button data-value="dropped" disabled>Discarded</button>
+          </div>
+          <label class="check"><input type="checkbox" id="highlightToggle" checked> Highlight query terms</label>
+          <button class="ghost small" id="expandAll">Expand all</button>
+        </div>
+        <div class="fy-grid body" id="candidates"><div class="placeholder">Waiting…</div></div>
+      </section>
+
+      <!-- 4. Rerank -->
+      <section class="stage" id="panel-rerank">
+        <div class="stage-head"><span class="num">3</span><h2>Cross-encoder rerank — top <span class="k-rr">5</span> per FY</h2>
+          <span class="hint">Each year reranked separately so neither dominates. Hover a chunk to find it in the 20.</span>
+          <span class="timing" data-for="rerank"></span></div>
+        <div class="fy-grid body" id="reranked"><div class="placeholder">Waiting…</div></div>
+      </section>
+
+      <!-- 5. Generate -->
+      <section class="stage" id="panel-generate">
+        <div class="stage-head"><span class="num">4</span><h2>Generate draft</h2>
+          <span class="hint">LLM writes the comparison from the 10 reranked extracts only.</span>
+          <span class="timing" data-for="generate"></span></div>
+        <div class="card body"><div class="placeholder">Waiting…</div></div>
+      </section>
+
+      <!-- 6. Output guardrail -->
+      <section class="stage" id="panel-output_guardrail">
+        <div class="stage-head"><span class="num">5</span><h2>Output guardrail — grounding check</h2>
+          <span class="hint">Are the answer's numbers and claims supported by the extracts?</span>
+          <span class="timing" data-for="output_guardrail"></span></div>
+        <div class="card body"><div class="placeholder">Waiting…</div></div>
+      </section>
+
+      <!-- 7. Human review -->
+      <section class="stage hidden" id="panel-human_review">
+        <div class="stage-head"><span class="num">6</span><h2>Human review</h2>
+          <span class="hint">The graph has stopped and returned. Its state is saved until you decide.</span>
+          <span class="timing" data-for="human_review"></span></div>
+        <div class="card body review"></div>
+      </section>
+
+      <!-- 8. Final -->
+      <section class="stage" id="panel-final">
+        <div class="stage-head"><span class="num">✓</span><h2>Final answer</h2></div>
+        <div class="card body final"><div class="placeholder">Waiting…</div></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="drawer" class="drawer hidden" role="dialog" aria-modal="true">
+    <div class="drawer-inner">
+      <div class="drawer-head">
+        <div id="drawerTitle"></div>
+        <button class="ghost" id="drawerClose">✕</button>
+      </div>
+      <div id="drawerBody" class="drawer-body"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
